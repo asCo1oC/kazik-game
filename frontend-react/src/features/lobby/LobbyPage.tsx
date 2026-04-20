@@ -1,0 +1,156 @@
+import { useEffect, useMemo, useState } from 'react'
+import { ApiClient, type RoomListItem } from '../../shared/api/client'
+
+type Props = {
+  userId: number
+  onOpenAdmin: () => void
+  onJoinRoom: (roomId: number) => void
+  toast: (message: string, type?: string) => void
+}
+
+export function LobbyPage({ userId, onOpenAdmin, onJoinRoom, toast }: Props) {
+  const api = useMemo(() => new ApiClient(), [])
+  const [rooms, setRooms] = useState<RoomListItem[]>([])
+  const [filters, setFilters] = useState({
+    entry_fee_min: '',
+    entry_fee_max: '',
+    seats_min: '',
+    seats_max: '',
+    tier: '',
+  })
+
+  const loadRooms = async () => {
+    try {
+      const data = await api.getRooms(filters)
+      setRooms(data)
+    } catch (e) {
+      toast((e as Error).message, 'error')
+    }
+  }
+
+  useEffect(() => {
+    loadRooms().catch(() => undefined)
+  }, [])
+
+  return (
+    <section id="lobby-view" className="view active">
+      <div className="hero shell-card">
+        <div>
+          <p className="eyebrow">Лобби</p>
+          <h2>Быстрый вход в игровые комнаты</h2>
+          <p>Создавайте комнату, фильтруйте ставки и следите за активными столами в реальном времени.</p>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={onOpenAdmin}>Админ-конфиг</button>
+          <button
+            className="btn btn-primary btn-large"
+            onClick={async () => {
+              try {
+                const room = await api.createRoom({
+                  name: 'VIP Gold Room',
+                  max_players: 4,
+                  entry_fee: 1000,
+                  prize_pool_pct: 0.8,
+                  boost_enabled: true,
+                  boost_cost: 200,
+                  boost_multiplier: 0.2,
+                }, userId)
+                onJoinRoom(room.id)
+              } catch (e) {
+                toast((e as Error).message, 'error')
+              }
+            }}
+          >
+            Создать комнату
+          </button>
+        </div>
+      </div>
+
+      <div className="filters shell-card">
+        <div className="filter-group">
+          <label>Вход от</label>
+          <input value={filters.entry_fee_min} onChange={(e) => setFilters((f) => ({ ...f, entry_fee_min: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Вход до</label>
+          <input value={filters.entry_fee_max} onChange={(e) => setFilters((f) => ({ ...f, entry_fee_max: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Мест от</label>
+          <input value={filters.seats_min} onChange={(e) => setFilters((f) => ({ ...f, seats_min: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Мест до</label>
+          <input value={filters.seats_max} onChange={(e) => setFilters((f) => ({ ...f, seats_max: e.target.value }))} />
+        </div>
+        <div className="filter-group">
+          <label>Класс</label>
+          <select value={filters.tier} onChange={(e) => setFilters((f) => ({ ...f, tier: e.target.value }))}>
+            <option value="">Все</option>
+            <option value="bronze">Бронза</option>
+            <option value="silver">Серебро</option>
+            <option value="gold">Золото</option>
+            <option value="platinum">Платина</option>
+          </select>
+        </div>
+        <div className="filter-actions">
+          <button className="btn btn-primary" onClick={() => loadRooms()}>Применить</button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => {
+              setFilters({ entry_fee_min: '', entry_fee_max: '', seats_min: '', seats_max: '', tier: '' })
+              setTimeout(() => loadRooms(), 0)
+            }}
+          >
+            Сбросить
+          </button>
+        </div>
+      </div>
+
+      <div className="section-title-row">
+        <h3>Доступные комнаты</h3>
+        <span className="section-note">Найдено комнат: {rooms.length}</span>
+      </div>
+      <div className="rooms-grid">
+        {rooms.map((room) => {
+          const isInactive = room.status !== 'waiting'
+          return (
+            <article className={`room-card ${isInactive ? 'room-card--inactive' : ''}`} key={room.id}>
+              <div className="room-card__top">
+                <div>
+                  <div className="status-badge">{room.status}</div>
+                  <h3 className="room-card__title">{room.name}</h3>
+                </div>
+                <div className="section-note">ID #{room.id}</div>
+              </div>
+              <div className="room-card__meta"><span>Вход: {room.entry_fee}</span><span>Мест: {room.max_players}</span></div>
+              <div className="room-card__meta"><span>Фонд: {room.total_pool}</span><span>Приз: {Math.round(room.prize_pool_pct * 100)}%</span></div>
+              <div className="room-card__footer">
+                <span className="section-note">{new Date(room.created_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</span>
+                <button
+                  className="btn btn-primary"
+                  disabled={isInactive}
+                  onClick={async () => {
+                    try {
+                      await api.joinRoom(room.id, userId)
+                      onJoinRoom(room.id)
+                    } catch (e) {
+                      const message = (e as Error).message
+                      if (message.includes('already joined this room')) {
+                        onJoinRoom(room.id)
+                      } else {
+                        toast(message, 'error')
+                      }
+                    }
+                  }}
+                >
+                  {isInactive ? 'Недоступна' : 'Войти'}
+                </button>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
