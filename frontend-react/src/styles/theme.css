@@ -1,4 +1,4 @@
-@import url('../../../frontend/css/style.css');
+@import url('./base.css');
 
 #room-react-root {
   width: 100%;

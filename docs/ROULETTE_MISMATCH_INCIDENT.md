@@ -59,7 +59,7 @@ Backend RNG работал корректно: победитель вычисл
 ## Как проверить после фикса
 
 1. Собрать React-бандл для backend-страницы:
-   - `cd frontend-react && npm run build:app`
+   - `cd frontend-react && npm run build`
 2. Запустить backend:
    - `python3 -m app.main`
 3. Открыть `http://localhost:8000` и сделать hard refresh (`Ctrl+Shift+R`).

@@ -6,7 +6,7 @@
 
 - **Backend**: Python 3.11 + FastAPI
 - **Database**: SQLite (aiosqlite)
-- **Frontend**: HTML5 + CSS3 + Vanilla JavaScript
+- **Frontend**: React + Vite
 - **Realtime**: WebSocket (native)
 - **Deployment**: локально, без Docker
 
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ### 2. Инициализация БД и демо-данные
 
 ```bash
-python seed.py
+python -m app.seed
 ```
 
 Скрипт создаст SQLite-файл `vip_opencase.db` и добавит:
@@ -31,17 +31,24 @@ python seed.py
 - 1 демо-комнату «VIP Demo Room»
 - глобальную конфигурацию админки
 
-### 3. Запуск сервера
+### 3. Сборка frontend-react
+
+```bash
+cd frontend-react
+npm install
+npm run build
+cd ..
+```
+
+### 4. Запуск сервера
 
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4. Открытие фронтенда
+### 5. Открытие фронтенда
 
-Откройте в браузере: `http://localhost:8000/frontend/index.html`
-
-Или просто `http://localhost:8000` — статика раздается из `frontend/`.
+Откройте в браузере: `http://localhost:8000/`
 
 ## Пользовательский сценарий
 
@@ -53,7 +60,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 ## Админ-панель
 
-Ссылка: `http://localhost:8000/frontend/index.html#admin` (или кнопка в интерфейсе, если добавлена).
+Ссылка: `http://localhost:8000/#admin` (или кнопка в интерфейсе, если добавлена).
 
 Параметры:
 - `max_players` — максимальное количество игроков (2–10)
@@ -121,20 +128,12 @@ app/
 └── integrations/
     └── stoloto_adapter.py # Mock-адаптер для интеграции
 
-frontend/
-├── index.html
-├── css/style.css
-└── js/
-    ├── config.js
-    ├── app.js
-    ├── views/
-    │   ├── lobby.js
-    │   ├── room.js
-    │   └── admin.js
-    ├── realtime/
-    │   └── ws-client.js
-    └── opencase/
-        └── animation.js
+frontend-react/
+├── src/
+├── public/
+└── dist/
+    ├── index.html
+    └── assets/
 ```
 
 ## Бизнес-логика

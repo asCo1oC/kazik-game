@@ -188,14 +188,28 @@ app.add_middleware(
 
 # Calculate paths relative to this file's location
 PROJECT_ROOT = Path(__file__).parent.parent
-FRONTEND_DIR = PROJECT_ROOT / "frontend"
+FRONTEND_DIST_DIR = PROJECT_ROOT / "frontend-react" / "dist"
+FRONTEND_ASSETS_DIR = FRONTEND_DIST_DIR / "assets"
 
-# Serve static frontend
-app.mount("/frontend", StaticFiles(directory=str(FRONTEND_DIR)), name="frontend")
+if not FRONTEND_DIST_DIR.exists() or not FRONTEND_ASSETS_DIR.exists():
+    raise RuntimeError(
+        "React build not found. Run `cd frontend-react && npm run build` before starting backend."
+    )
+
+# Serve built React assets
+app.mount("/assets", StaticFiles(directory=str(FRONTEND_ASSETS_DIR)), name="frontend-assets")
+
+@app.get("/favicon.svg")
+async def serve_favicon():
+    return FileResponse(str(FRONTEND_DIST_DIR / "favicon.svg"))
+
+@app.get("/icons.svg")
+async def serve_icons():
+    return FileResponse(str(FRONTEND_DIST_DIR / "icons.svg"))
 
 @app.get("/")
 async def serve_index():
-    return FileResponse(str(FRONTEND_DIR / "index.html"))
+    return FileResponse(str(FRONTEND_DIST_DIR / "index.html"))
 
 # Dependency helpers
 async def get_rooms_service(db: AsyncSession = Depends(get_db)) -> RoomsService:

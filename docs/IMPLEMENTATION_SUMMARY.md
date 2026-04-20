@@ -17,17 +17,10 @@
 - **Realtime**: [`ws/manager.py`](app/ws/manager.py:1) — WebSocket connection manager per room
 - **Integration**: [`integrations/stoloto_adapter.py`](app/integrations/stoloto_adapter.py:1) — mock adapter for external API
 
-### Frontend (HTML/CSS/JS)
-- **Shell**: [`frontend/index.html`](frontend/index.html:1) — single-page app structure
-- **Styles**: [`frontend/css/style.css`](frontend/css/style.css:1) — dark theme, responsive layout
-- **Modules**:
-  - [`js/config.js`](frontend/js/config.js:1) — constants
-  - [`js/app.js`](frontend/js/app.js:1) — main orchestrator and view router
-  - [`js/realtime/ws-client.js`](frontend/js/realtime/ws-client.js:1) — WebSocket client with reconnect
-  - [`js/views/lobby.js`](frontend/js/views/lobby.js:1) — room list, filters, join/create
-  - [`js/views/room.js`](frontend/js/views/room.js:1) — room state, timer, boost, animation trigger
-  - [`js/views/admin.js`](frontend/js/views/admin.js:1) — configurator with live validation
-  - [`js/opencase/animation.js`](frontend/js/opencase/animation.js:1) — lane animation with near-miss effect
+### Frontend (React + Vite)
+- **Source app**: [`frontend-react/src`](frontend-react/src) — React UI and room logic
+- **Build config**: [`frontend-react/vite.config.ts`](frontend-react/vite.config.ts:1)
+- **Production bundle**: [`frontend-react/dist`](frontend-react/dist) — static build served by backend
 
 ### Documentation
 - [`README.md`](README.md:1) — quick start, API reference, architecture
@@ -37,7 +30,7 @@
 - [`plans/mvp-opencase-plan.md`](plans/mvp-opencase-plan.md:1) — full implementation plan
 
 ### Utilities
-- [`seed.py`](seed.py:1) — demo data initializer (4 users, 1 room, global config)
+- [`app/seed.py`](app/seed.py:1) — demo data initializer (4 users, 1 room, global config)
 - [`requirements.txt`](requirements.txt:1) — Python dependencies
 - [`.gitignore`](.gitignore:1) — standard exclusions
 
@@ -76,13 +69,16 @@ source venv/bin/activate  # or venv\Scripts\activate on Windows
 pip install -r requirements.txt
 
 # 2. Seed demo data
-python seed.py
+python -m app.seed
 
-# 3. Start server
+# 3. Build frontend
+cd frontend-react && npm run build && cd ..
+
+# 4. Start server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# 4. Open browser
-# http://localhost:8000/frontend/index.html
+# 5. Open browser
+# http://localhost:8000/
 ```
 
 ## Project Structure
@@ -107,30 +103,19 @@ kazik-game/
 │   │   └── history_service.py
 │   ├── ws/
 │   │   └── manager.py
-│   └── integrations/
-│       └── stoloto_adapter.py
-├── frontend/
-│   ├── index.html
-│   ├── css/
-│   │   └── style.css
-│   └── js/
-│       ├── config.js
-│       ├── app.js
-│       ├── views/
-│       │   ├── lobby.js
-│       │   ├── room.js
-│       │   └── admin.js
-│       ├── realtime/
-│       │   └── ws-client.js
-│       └── opencase/
-│           └── animation.js
+│   ├── integrations/
+│   │   └── stoloto_adapter.py
+│   └── seed.py
+├── frontend-react/
+│   ├── src/
+│   ├── public/
+│   └── dist/
 ├── docs/
 │   ├── economy-rules.md
 │   └── organizer-guide.md
 ├── plans/
 │   └── mvp-opencase-plan.md
 ├── requirements.txt
-├── seed.py
 ├── README.md
 └── .gitignore
 ```

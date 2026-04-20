@@ -3,7 +3,7 @@
 ## 1. Принятый технический baseline
 - Backend: Python + FastAPI
 - Database: SQLite
-- Frontend: HTML/CSS/JS
+- Frontend: React + Vite
 - Realtime: WebSocket
 - Deployment: без Docker для MVP
 - Экономическое правило: при победе бота бонусный фонд раунда возвращается в `promo_pool`
@@ -30,13 +30,11 @@
 - `app/integrations/stoloto_adapter.py` — mock-адаптер reserve/update операций.
 
 ### 3.2 Frontend-модули
-- `frontend/index.html` — shell приложения.
-- `frontend/js/app.js` — роутинг экранов и state orchestration.
-- `frontend/js/views/lobby.js` — список комнат и фильтры.
-- `frontend/js/views/room.js` — комната, таймер, участники, буст.
-- `frontend/js/views/admin.js` — конфигуратор и предупреждения.
-- `frontend/js/opencase/animation.js` — фазы анимации ленты.
-- `frontend/js/realtime/ws-client.js` — подписка на room events.
+- `frontend-react/src/app` — shell приложения и роутинг.
+- `frontend-react/src/features/lobby` — список комнат и фильтры.
+- `frontend-react/src/features/room` — комната, таймер, участники, буст, рулетка.
+- `frontend-react/src/features/admin` — конфигуратор и предупреждения.
+- `frontend-react/src/shared/realtime` — подписка на room events.
 
 ### 3.3 Data flow
 ```mermaid
