@@ -14,8 +14,8 @@ type Props = {
   onSpinEnd?: () => void
 }
 
-const CARD_WIDTH = 160
-const CARD_MARGIN = 8
+const CARD_WIDTH = 180
+const CARD_MARGIN = 10
 const ITEM_FULL_WIDTH = CARD_WIDTH + CARD_MARGIN
 const MAIN_SPIN_MS = 20000
 const SETTLE_MS = 1100
@@ -83,8 +83,8 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
       style={{
         position: 'relative',
         width: '100%',
-        maxWidth: '900px',
-        height: '192px',
+        maxWidth: '1240px',
+        height: '230px',
         background: '#111827',
         borderRadius: '12px',
         overflow: 'hidden',
@@ -193,7 +193,7 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
           >
             <div
               style={{
-                fontSize: '48px',
+              fontSize: '56px',
                 marginBottom: '8px',
                 filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
               }}
@@ -217,16 +217,7 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
             >
               {item.name}
             </div>
-            <div
-              style={{
-                fontSize: '10px',
-                color: '#9ca3af',
-                marginTop: '4px',
-                fontFamily: 'monospace',
-              }}
-            >
-              {item.rarity}
-            </div>
+            {/* rarity line intentionally hidden to keep roulette clean */}
           </div>
         ))}
       </div>

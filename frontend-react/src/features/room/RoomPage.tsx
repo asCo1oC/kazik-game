@@ -19,7 +19,7 @@ type RoundFinishedPayload = { lingerSeconds?: number; winnerUsername?: string; w
 const DEFAULT_WIN_INDEX = 30
 const DEFAULT_STRIP_SIZE = 80
 const RARITY_PALETTE = ['#b0c3d9', '#5e98d9', '#4b69ff', '#8847ff', '#d32ce6', '#eb4b4b', '#ffd700']
-const RARITY_LABELS = ['Consumer', 'Industrial', 'Mil-Spec', 'Restricted', 'Classified', 'Covert', 'Extraordinary']
+const RARITY_LABELS = ['Tier 1', 'Tier 2', 'Tier 3', 'Tier 4', 'Tier 5', 'Tier 6', 'Tier 7']
 
 function rarityFromSeed(seedText: string, index: number) {
   const seed = [...seedText].reduce((acc, char) => acc + char.charCodeAt(0), 0) + index
@@ -73,11 +73,30 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
   const [animatedBalance, setAnimatedBalance] = useState(0)
   const [balanceGainFx, setBalanceGainFx] = useState<number | null>(null)
   const [coinRain, setCoinRain] = useState<CoinParticle[]>([])
+  const [boostConfirmVisible, setBoostConfirmVisible] = useState(false)
+  const [boostSuccessFx, setBoostSuccessFx] = useState<{ oldChance: number; newChance: number } | null>(null)
+  const [isEntering, setIsEntering] = useState(true)
+  const [isExiting, setIsExiting] = useState(false)
   const roomCloseTimeoutRef = useRef<number | null>(null)
   const winnerHideTimeoutRef = useRef<number | null>(null)
   const balanceFxTimeoutRef = useRef<number | null>(null)
   const coinRainTimeoutRef = useRef<number | null>(null)
   const pendingRoundFinishRef = useRef<RoundFinishedPayload | null>(null)
+  const exitingRef = useRef(false)
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsEntering(false), 700) // matches door opening duration
+    return () => clearTimeout(timer)
+  }, [])
+
+  const handleExit = useCallback(() => {
+    if (exitingRef.current) return
+    exitingRef.current = true
+    setIsExiting(true)
+    setTimeout(() => {
+      onExit()
+    }, 500) // matches door closing duration
+  }, [onExit])
 
   const refreshRoom = useCallback(async () => {
     const data = await api.getRoom(roomId)
@@ -85,8 +104,8 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
     setParticipants(data.participants || [])
     if (typeof data.time_remaining === 'number') setTimer(data.time_remaining)
     const amParticipant = (data.participants || []).some((p) => p.user_id === userId && !p.is_bot)
-    if (!amParticipant) onExit()
-  }, [api, roomId, userId, onExit])
+    if (!amParticipant) handleExit()
+  }, [api, roomId, userId, handleExit])
 
   const refreshBalance = useCallback(async () => {
     const profile = await api.getUserProfile(userId, 1)
@@ -96,10 +115,10 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
   useEffect(() => {
     refreshRoom().catch((e: Error) => {
       toast(e.message, 'error')
-      onExit()
+      handleExit()
     })
     refreshBalance().catch(() => undefined)
-  }, [refreshRoom, refreshBalance, toast, onExit])
+  }, [refreshRoom, refreshBalance, toast, handleExit])
 
   useEffect(() => {
     return () => {
@@ -115,6 +134,7 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       if (coinRainTimeoutRef.current) {
         window.clearTimeout(coinRainTimeoutRef.current)
       }
+      pendingRoundFinishRef.current = null
     }
   }, [])
 
@@ -163,8 +183,8 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
     if (winnerHideTimeoutRef.current) window.clearTimeout(winnerHideTimeoutRef.current)
     winnerHideTimeoutRef.current = window.setTimeout(() => setWinnerVisible(false), 3000)
     if (roomCloseTimeoutRef.current) window.clearTimeout(roomCloseTimeoutRef.current)
-    roomCloseTimeoutRef.current = window.setTimeout(() => onExit(), linger * 1000)
-  }, [animatedBalance, onExit, refreshBalance, toast, userId])
+    roomCloseTimeoutRef.current = window.setTimeout(() => handleExit(), linger * 1000)
+  }, [animatedBalance, handleExit, refreshBalance, toast, userId])
 
   useEffect(() => {
     if (roundStripLocked || isSpinning || room?.status === 'locked' || room?.status === 'running' || room?.status === 'finished') {
@@ -269,19 +289,44 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
         window.clearTimeout(coinRainTimeoutRef.current)
         coinRainTimeoutRef.current = null
       }
-      const result = await api.leaveRoom(roomId, userId)
-      toast(`${result.message}. Возвращено: ${result.refunded_amount}`, 'success')
-      onExit()
+      exitingRef.current = true
+      setIsExiting(true)
+      await api.leaveRoom(roomId, userId)
+      setTimeout(() => onExit(), 500)
     } catch (error) {
+      exitingRef.current = false
+      setIsExiting(false)
       toast((error as Error).message, 'error')
     }
   }
 
-  const activateBoost = async () => {
+  const handleActivateBoostClick = () => {
+    setBoostConfirmVisible(true)
+  }
+
+  const confirmBoost = async () => {
+    setBoostConfirmVisible(false)
+    
+    // Вычисляем шанс с учетом того, что комната заполнится до конца (max_players)
+    // Предполагаем, что пустые слоты займут игроки с весом 1 (без буста)
+    const myCurrentWeight = 1; // До активации буста вес пользователя равен 1
+    const currentTotalWeight = participants.reduce((acc, p) => acc + (1 + (p.boost_multiplier || 0)), 0)
+    const emptySlots = Math.max(0, (room?.max_players || 0) - participants.length)
+    const simulatedTotalWeightBefore = currentTotalWeight + emptySlots
+    
+    const oldChance = (myCurrentWeight / simulatedTotalWeightBefore) * 100
+    
+    const boostMult = room?.boost_multiplier || 0
+    const myNewWeight = myCurrentWeight + boostMult
+    const simulatedTotalWeightAfter = simulatedTotalWeightBefore + boostMult
+    const newChance = (myNewWeight / simulatedTotalWeightAfter) * 100
+
     try {
       await api.activateBoost(roomId, userId)
       await refreshRoom()
       toast('Буст активирован', 'success')
+      setBoostSuccessFx({ oldChance, newChance })
+      setTimeout(() => setBoostSuccessFx(null), 5000)
     } catch (error) {
       toast((error as Error).message, 'error')
     }
@@ -291,9 +336,53 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
   const me = participants.find((p) => p.user_id === userId && !p.is_bot)
   const canBoost = Boolean(me) && room.status === 'waiting' && room.boost_enabled
   const boostActivated = Boolean(me?.boost_multiplier && me.boost_multiplier > 0)
+  const cannotLeave = isSpinning || room.status === 'locked' || room.status === 'running' || room.status === 'finished' || isExiting
+
+  const currentTotalWeight = participants.reduce((acc, p) => acc + (1 + (p.boost_multiplier || 0)), 0)
+  const emptySlots = Math.max(0, (room.max_players || 0) - participants.length)
+  const simulatedTotalWeight = currentTotalWeight + emptySlots
 
   return (
     <div className="room-layout">
+      {(isEntering || isExiting) && (
+        <div className={`door-overlay ${isEntering ? 'door-opening' : ''} ${isExiting ? 'door-closing' : ''}`}>
+          <div className="door-half door-left"></div>
+          <div className="door-half door-right"></div>
+        </div>
+      )}
+      {boostConfirmVisible && room && (
+        <div className="boost-modal-overlay">
+          <div className="boost-modal shell-card">
+            <h3>Активация буста</h3>
+            <p>
+              Активация буста увеличит <strong>«вес» вашего билета на +{Math.round(room.boost_multiplier * 100)}%</strong>.<br/>
+              Ваш итоговый шанс на победу будет пересчитан.<br/>
+              Стоимость буста: <strong className="gold-text">{room.boost_cost}</strong> бонусов.
+            </p>
+            <p className="boost-modal-question">Вы готовы?</p>
+            <div className="boost-modal-actions">
+              <button className="btn btn-secondary boost-modal-no" onClick={() => setBoostConfirmVisible(false)}>
+                Нет, я передумал
+              </button>
+              <button className="btn boost-modal-yes" onClick={confirmBoost}>
+                Да, активировать!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {boostSuccessFx && (
+        <div className="boost-success-overlay">
+          <div className="boost-success-content">
+            <div className="boost-success-arrow">↑</div>
+            <h1 className="boost-success-title">Ваша удача возросла!!!</h1>
+            <div className="boost-success-stats">
+              <div className="boost-stat-old">Было: <span>{boostSuccessFx.oldChance.toFixed(1)}%</span></div>
+              <div className="boost-stat-new">Стало: <span>{boostSuccessFx.newChance.toFixed(1)}%</span></div>
+            </div>
+          </div>
+        </div>
+      )}
       {coinRain.length > 0 && (
         <div className="coin-rain" aria-hidden="true">
           {coinRain.map((coin) => (
@@ -315,9 +404,9 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       )}
       <aside className="room-sidebar shell-card">
         <div className="room-sidebar__top">
-          <button className="btn btn-secondary" onClick={leaveRoom}>← Выйти из комнаты</button>
+          <button className="btn btn-secondary" onClick={leaveRoom} disabled={cannotLeave}>← Выйти из комнаты</button>
           <div>
-            <p className="eyebrow">Комната (React)</p>
+            <p className="eyebrow">Столото</p>
             <h2>{room.name}</h2>
           </div>
         </div>
@@ -332,41 +421,43 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
           <div className="stat-tile"><span className="stat-label">Вход</span><strong>{room.entry_fee}</strong></div>
           <div className="stat-tile"><span className="stat-label">Мест</span><strong>{participants.length} / {room.max_players}</strong></div>
         </div>
-        {canBoost && (
-          <div className={`boost-controls shell-card shell-card--inner ${boostActivated ? 'boost-controls--active' : ''}`}>
-            <p className="eyebrow">Усиление шанса</p>
-            <button className={`btn btn-boost ${boostActivated ? 'btn-boost--active' : ''}`} disabled={boostActivated} onClick={activateBoost}>
+        <div className={`boost-controls shell-card shell-card--inner ${boostActivated ? 'boost-controls--active' : ''}`}>
+          <p className="eyebrow">Участники</p>
+          {canBoost && (
+            <button className={`btn btn-boost ${boostActivated ? 'btn-boost--active' : ''}`} disabled={boostActivated} onClick={handleActivateBoostClick}>
               {boostActivated ? 'Буст активирован' : `Активировать буст +${Math.round(room.boost_multiplier * 100)}%`}
             </button>
-            <span className="boost-cost">Стоимость: {room.boost_cost} бонусов</span>
-            <div className="participants-list">
-              {participants.map((participant) => (
+          )}
+          {canBoost && <span className="boost-cost">Стоимость: {room.boost_cost} бонусов</span>}
+          <div className="participants-list">
+            {participants.map((participant) => {
+              const weight = 1 + (participant.boost_multiplier || 0)
+              const chance = ((weight / simulatedTotalWeight) * 100).toFixed(1)
+              return (
                 <div className={`participant-item ${participant.user_id === userId && !participant.is_bot ? 'you' : ''} ${participant.is_bot ? 'bot' : ''} ${participant.boost_multiplier > 0 ? 'participant-item--boosted' : ''}`} key={participant.id}>
                   <div className="participant-main">
                     <strong>{participant.avatar || participant.talisman || '🎲'} {participant.display_name || participant.username}</strong>
-                    <span className="participant-sub">{participant.is_bot ? 'Бот' : 'Игрок'}</span>
+                    <span className="participant-sub">{participant.is_bot ? 'Бот' : 'Игрок'} • Шанс: {chance}%</span>
                   </div>
-                  {participant.boost_multiplier > 0 && <span className="boost-badge">⚡ +{Math.round(participant.boost_multiplier * 100)}%</span>}
+                  {participant.boost_multiplier > 0 && <span className="boost-badge">⚡ Вес +{Math.round(participant.boost_multiplier * 100)}%</span>}
                 </div>
-              ))}
-            </div>
+              )
+            })}
           </div>
-        )}
+        </div>
       </aside>
       <div className={`room-stage shell-card ${isSpinning ? 'room-stage--active' : ''}`}>
         <div className="room-stage__header">
           <div>
             <p className="eyebrow">Розыгрыш</p>
-            <h3>Case Roulette</h3>
+            <h3>{room.name}</h3>
           </div>
           <div className="timer-display shell-card shell-card--compact">
             <span className="timer-label">Таймер</span>
             <span>{timer}с</span>
           </div>
         </div>
-        <div className="room-state-message">
-          {room.status === 'finished' ? 'Раунд завершён. Комната скоро закроется.' : 'Крутится лента участников.'}
-        </div>
+        <div className="room-state-message">{room.status === 'finished' ? 'Раунд завершён.' : 'Розыгрыш идёт...'}</div>
         <div className="opencase-container-wrap">
           <CaseRoulette
             items={rouletteItems}
