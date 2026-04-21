@@ -336,7 +336,7 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
   const me = participants.find((p) => p.user_id === userId && !p.is_bot)
   const canBoost = Boolean(me) && room.status === 'waiting' && room.boost_enabled
   const boostActivated = Boolean(me?.boost_multiplier && me.boost_multiplier > 0)
-  const cannotLeave = isSpinning || room.status === 'locked' || room.status === 'running' || room.status === 'finished' || isExiting
+  const cannotLeave = isSpinning || room.status === 'locked' || room.status === 'running' || isExiting
 
   const currentTotalWeight = participants.reduce((acc, p) => acc + (1 + (p.boost_multiplier || 0)), 0)
   const emptySlots = Math.max(0, (room.max_players || 0) - participants.length)
