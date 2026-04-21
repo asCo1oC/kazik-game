@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.models import AdminConfig, Room, RoomStatus
@@ -110,7 +111,8 @@ class ConfigService:
                 if hasattr(config, key):
                     setattr(config, key, value)
             config.risk_level = validation.risk_level
-            config.updated_at = None  # triggers onupdate
+            # SQLite won't auto-populate onupdate when value is explicitly set to NULL.
+            config.updated_at = datetime.utcnow()
         else:
             # Create
             config = AdminConfig(

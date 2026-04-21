@@ -65,6 +65,13 @@ class RngService:
         lane_margin = 6
         lane_win_index = lane_margin + secrets.randbelow(lane_items - 2 * lane_margin)
 
+        lane_participant_ids = self._build_lane_participant_ids(
+            participants=participants,
+            winner_participant_id=winner.id,
+            lane_items=lane_items,
+            win_index=lane_win_index,
+        )
+
         # Create round record
         round_obj = Round(
             room_id=room_id,
@@ -88,6 +95,8 @@ class RngService:
             "winner_is_bot": winner.is_bot,
             "participant_index": winner_index,
             "win_index": lane_win_index,
+            "lane_items": lane_items,
+            "lane_participant_ids": lane_participant_ids,
             "item": item,
             "room_total_pool": room.total_pool,
             "prize_pool": room.prize_pool,
@@ -103,6 +112,26 @@ class RngService:
         await self.db.commit()
 
         return result_payload
+
+    def _build_lane_participant_ids(
+        self,
+        participants: list[RoomParticipant],
+        winner_participant_id: int,
+        lane_items: int,
+        win_index: int,
+    ) -> list[int]:
+        participant_ids = [p.id for p in participants]
+        if not participant_ids:
+            return []
+
+        strip = []
+        for _ in range(lane_items):
+            random_idx = secrets.randbelow(len(participant_ids))
+            strip.append(participant_ids[random_idx])
+
+        if 0 <= win_index < len(strip):
+            strip[win_index] = winner_participant_id
+        return strip
 
     def _generate_item(self, total_pool: int) -> dict:
         """Generate a random item based on pool size and rarity weights."""

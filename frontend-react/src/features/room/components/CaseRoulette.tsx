@@ -17,12 +17,13 @@ type Props = {
 const CARD_WIDTH = 160
 const CARD_MARGIN = 8
 const ITEM_FULL_WIDTH = CARD_WIDTH + CARD_MARGIN
-const MAIN_SPIN_MS = 9000
-const SETTLE_MS = 550
+const MAIN_SPIN_MS = 20000
+const SETTLE_MS = 1100
 
 export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Props) {
   const [offset, setOffset] = useState(0)
   const [transition, setTransition] = useState('none')
+  const [isSlowingDown, setIsSlowingDown] = useState(false)
   const stripRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -30,15 +31,18 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
     if (items.length <= winnerIndex) return undefined
 
     setTransition('none')
-    setOffset(20)
+    setOffset(0)
+    setIsSlowingDown(false)
 
     const randomOffset = 0
     const overshoot = 10 + Math.floor(Math.random() * 9)
-    const containerWidth = stripRef.current?.parentElement?.offsetWidth || 800
-    const containerCenter = containerWidth / 2
-    const targetPosition = (winnerIndex * ITEM_FULL_WIDTH) - containerCenter + (CARD_WIDTH / 2) + randomOffset
-    const mainStopOffset = -(targetPosition + overshoot)
-    const finalOffset = -targetPosition
+    // Strip has padding-left: 50%, so card center formula is:
+    // x = containerCenter + index * ITEM_FULL_WIDTH + CARD_WIDTH / 2 + offset.
+    // To align selected card center with pointer at containerCenter:
+    // offset = -(index * ITEM_FULL_WIDTH + CARD_WIDTH / 2).
+    const targetOffset = -((winnerIndex * ITEM_FULL_WIDTH) + (CARD_WIDTH / 2) + randomOffset)
+    const mainStopOffset = targetOffset - overshoot
+    const finalOffset = targetOffset
 
     let raf2 = 0
     const raf1 = requestAnimationFrame(() => {
@@ -53,7 +57,14 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
       setOffset(finalOffset)
     }, MAIN_SPIN_MS)
 
+    // Turn on jitter shortly before settle to add tension.
+    const slowdownLeadMs = 1100
+    const slowDownTimer = window.setTimeout(() => {
+      setIsSlowingDown(true)
+    }, Math.max(0, MAIN_SPIN_MS - slowdownLeadMs))
+
     const doneTimer = window.setTimeout(() => {
+      setIsSlowingDown(false)
       onSpinEnd?.()
     }, MAIN_SPIN_MS + SETTLE_MS)
 
@@ -61,7 +72,9 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
       cancelAnimationFrame(raf1)
       cancelAnimationFrame(raf2)
       window.clearTimeout(settleTimer)
+      window.clearTimeout(slowDownTimer)
       window.clearTimeout(doneTimer)
+      setIsSlowingDown(false)
     }
   }, [isSpinning, winnerIndex, items, onSpinEnd])
 
@@ -78,6 +91,7 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
         border: '2px solid rgba(202, 138, 4, 0.3)',
         boxShadow: '0 0 30px rgba(234, 179, 8, 0.1)',
         margin: '0 auto',
+        animation: isSlowingDown ? 'rouletteSlowShake 120ms steps(2,end) infinite' : 'none',
       }}
     >
       <div

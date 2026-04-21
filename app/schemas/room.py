@@ -9,6 +9,7 @@ class ParticipantInfo(BaseModel):
     username: str
     display_name: str
     is_bot: bool
+    avatar: str
     talisman: str
     seat_index: Optional[int] = None
     boost_multiplier: float

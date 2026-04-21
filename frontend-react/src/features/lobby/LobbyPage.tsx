@@ -3,12 +3,11 @@ import { ApiClient, type RoomListItem } from '../../shared/api/client'
 
 type Props = {
   userId: number
-  onOpenAdmin: () => void
   onJoinRoom: (roomId: number) => void
   toast: (message: string, type?: string) => void
 }
 
-export function LobbyPage({ userId, onOpenAdmin, onJoinRoom, toast }: Props) {
+export function LobbyPage({ userId, onJoinRoom, toast }: Props) {
   const api = useMemo(() => new ApiClient(), [])
   const [rooms, setRooms] = useState<RoomListItem[]>([])
   const [filters, setFilters] = useState({
@@ -41,7 +40,6 @@ export function LobbyPage({ userId, onOpenAdmin, onJoinRoom, toast }: Props) {
           <p>Создавайте комнату, фильтруйте ставки и следите за активными столами в реальном времени.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-secondary" onClick={onOpenAdmin}>Админ-конфиг</button>
           <button
             className="btn btn-primary btn-large"
             onClick={async () => {
@@ -69,19 +67,19 @@ export function LobbyPage({ userId, onOpenAdmin, onJoinRoom, toast }: Props) {
       <div className="filters shell-card">
         <div className="filter-group">
           <label>Вход от</label>
-          <input value={filters.entry_fee_min} onChange={(e) => setFilters((f) => ({ ...f, entry_fee_min: e.target.value }))} />
+          <input placeholder="Мин. 100" value={filters.entry_fee_min} onChange={(e) => setFilters((f) => ({ ...f, entry_fee_min: e.target.value }))} />
         </div>
         <div className="filter-group">
           <label>Вход до</label>
-          <input value={filters.entry_fee_max} onChange={(e) => setFilters((f) => ({ ...f, entry_fee_max: e.target.value }))} />
+          <input placeholder="Макс. 5000" value={filters.entry_fee_max} onChange={(e) => setFilters((f) => ({ ...f, entry_fee_max: e.target.value }))} />
         </div>
         <div className="filter-group">
           <label>Мест от</label>
-          <input value={filters.seats_min} onChange={(e) => setFilters((f) => ({ ...f, seats_min: e.target.value }))} />
+          <input placeholder="Мин. 2" value={filters.seats_min} onChange={(e) => setFilters((f) => ({ ...f, seats_min: e.target.value }))} />
         </div>
         <div className="filter-group">
           <label>Мест до</label>
-          <input value={filters.seats_max} onChange={(e) => setFilters((f) => ({ ...f, seats_max: e.target.value }))} />
+          <input placeholder="Макс. 10" value={filters.seats_max} onChange={(e) => setFilters((f) => ({ ...f, seats_max: e.target.value }))} />
         </div>
         <div className="filter-group">
           <label>Класс</label>

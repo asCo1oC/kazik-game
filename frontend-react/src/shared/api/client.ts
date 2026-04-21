@@ -4,6 +4,7 @@ export type RoomParticipant = {
   username: string
   display_name: string
   is_bot: boolean
+  avatar: string
   talisman: string
   reserved_amount: number
   boost_multiplier: number
@@ -54,6 +55,42 @@ export type ConfigValidation = {
   explanation?: string
   warnings: string[]
   errors: string[]
+}
+
+export type AdminRoomItem = {
+  id: number
+  name: string
+  status: 'waiting' | 'locked' | 'running' | 'finished' | 'archived'
+  tier: string
+  entry_fee: number
+  max_players: number
+  prize_pool_pct: number
+  boost_enabled: boolean
+  boost_cost: number
+  boost_multiplier: number
+  participants_count: number
+  created_at: string | null
+}
+
+export type UserProfileEntry = {
+  round_id: number
+  room_id: number | null
+  room_name: string
+  status: 'win' | 'lose'
+  item_name: string
+  item_rarity: string
+  awarded_amount: number
+  finished_at: string
+}
+
+export type UserProfile = {
+  user_id: number
+  username: string
+  avatar: string
+  bonus_balance: number
+  rounds_played: number
+  wins_count: number
+  history: UserProfileEntry[]
 }
 
 type ApiOptions = Omit<RequestInit, 'body'> & { payload?: unknown }
@@ -111,6 +148,10 @@ export class ApiClient {
     return this.request<{ room_id: number | null }>(`/api/users/${userId}/active-room`)
   }
 
+  getUserProfile(userId: number, limit = 20) {
+    return this.request<UserProfile>(`/api/users/${userId}/profile?limit=${limit}`)
+  }
+
   createRoom(payload: {
     name: string
     max_players: number
@@ -161,6 +202,17 @@ export class ApiClient {
   saveConfig(payload: AdminConfig) {
     return this.request('/api/admin/config', {
       method: 'POST',
+      payload,
+    })
+  }
+
+  getAdminRooms() {
+    return this.request<AdminRoomItem[]>('/api/admin/rooms')
+  }
+
+  updateRoomConfig(roomId: number, payload: Partial<Pick<AdminConfig, 'max_players' | 'entry_fee' | 'prize_pool_pct' | 'boost_enabled' | 'boost_cost' | 'boost_multiplier'>>) {
+    return this.request<RoomListItem>(`/api/admin/rooms/${roomId}/config`, {
+      method: 'PUT',
       payload,
     })
   }

@@ -8,10 +8,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from app.config import settings
 from app.database import init_db, get_db, AsyncSessionLocal
-from app.models.models import User, Room, RoomStatus
+from app.models.models import User, Room, RoomStatus, RoomParticipant, UserRoundHistory
 from app.schemas.room import (
     RoomCreate, RoomUpdate, RoomResponse, RoomDetailResponse,
     RoomJoinRequest, RoomJoinResponse, BoostActivateRequest, BoostActivateResponse,
@@ -269,6 +269,56 @@ async def get_user_active_room(user_id: int, service: RoomsService = Depends(get
     room_id = await service.get_active_room_for_user(user_id)
     return {"room_id": room_id}
 
+
+@app.get("/api/users/{user_id}/profile")
+async def get_user_profile(
+    user_id: int,
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    history_rows = (await db.execute(
+        select(UserRoundHistory)
+        .where(UserRoundHistory.user_id == user_id)
+        .order_by(UserRoundHistory.created_at.desc())
+        .limit(limit)
+    )).scalars().all()
+
+    history = []
+    wins_count = 0
+    for row in history_rows:
+        if row.status == "win":
+            wins_count += 1
+        history.append({
+            "round_id": row.round_id,
+            "room_id": row.room_id,
+            "room_name": row.room_name,
+            "status": row.status,
+            "item_name": row.item_name,
+            "item_rarity": row.item_rarity,
+            "awarded_amount": row.awarded_amount,
+            "finished_at": row.created_at.isoformat(),
+        })
+
+    return {
+        "user_id": user.id,
+        "username": user.username,
+        "avatar": build_rooms_service(db)._resolve_talisman(user.id, False),
+        "bonus_balance": user.bonus_balance,
+        "rounds_played": len(history),
+        "wins_count": wins_count,
+        "history": history,
+    }
+
+
+@app.get("/profile")
+@app.get("/admin")
+async def serve_spa_subroutes():
+    return FileResponse(str(FRONTEND_DIST_DIR / "index.html"))
+
 @app.post("/api/rooms")
 async def create_room(
     room: RoomCreate,
@@ -291,6 +341,11 @@ async def join_room(
         participant, msg = await service.join_room(room_id, request.user_id)
         await maybe_start_room_timer(room_id, service)
         room_data = await service.get_room_with_participants(room_id)
+        await manager.broadcast_to_room(
+            room_id,
+            "PARTICIPANTS_SYNC",
+            {"participants": room_data["participants"]},
+        )
         pool = room_data["room"].total_pool
         seats_taken = len(room_data["participants"])
         return RoomJoinResponse(
@@ -314,6 +369,12 @@ async def leave_room(
     try:
         result = await service.leave_room(room_id, request.user_id)
         room = await service.db.get(Room, room_id)
+        room_data = await service.get_room_with_participants(room_id)
+        await manager.broadcast_to_room(
+            room_id,
+            "PARTICIPANTS_SYNC",
+            {"participants": room_data["participants"] if room_data else []},
+        )
         task = room_tasks.get(room_id)
         if result["participants_count"] == 0:
             if room and room.status == RoomStatus.FINISHED:
@@ -376,6 +437,56 @@ async def update_admin_config(
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/admin/rooms")
+async def list_admin_rooms(db: AsyncSession = Depends(get_db)):
+    rows = (await db.execute(
+        select(Room, func.count(RoomParticipant.id))
+        .outerjoin(RoomParticipant, RoomParticipant.room_id == Room.id)
+        .group_by(Room.id)
+        .order_by(Room.created_at.desc())
+    )).all()
+    return [
+        {
+            "id": room.id,
+            "name": room.name,
+            "status": room.status.value if hasattr(room.status, "value") else str(room.status),
+            "tier": room.tier,
+            "entry_fee": room.entry_fee,
+            "max_players": room.max_players,
+            "prize_pool_pct": room.prize_pool_pct,
+            "boost_enabled": room.boost_enabled,
+            "boost_cost": room.boost_cost,
+            "boost_multiplier": room.boost_multiplier,
+            "participants_count": participants_count,
+            "created_at": room.created_at.isoformat() if room.created_at else None,
+        }
+        for room, participants_count in rows
+    ]
+
+
+@app.put("/api/admin/rooms/{room_id}/config")
+async def update_waiting_room_config(
+    room_id: int,
+    payload: RoomUpdate,
+    db: AsyncSession = Depends(get_db),
+):
+    room = await db.get(Room, room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    if room.status != RoomStatus.WAITING:
+        raise HTTPException(status_code=400, detail="Only waiting rooms can be edited")
+
+    updates = payload.model_dump(exclude_none=True)
+    for key, value in updates.items():
+        setattr(room, key, value)
+    if "entry_fee" in updates and "tier" not in updates:
+        room.tier = resolve_room_tier(room.entry_fee)
+    room.prize_pool = int(room.total_pool * room.prize_pool_pct)
+    await db.commit()
+    await db.refresh(room)
+    return RoomResponse.model_validate(room)
 
 @app.post("/api/admin/config/validate")
 async def validate_config(
@@ -440,6 +551,10 @@ async def room_timer_task(room_id: int):
         # Start round and send precomputed result
             async with room_db_lock:
                 result = await service.start_round(room_id)
+                room_data = await service.get_room_with_participants(room_id)
+                participant_snapshot = {
+                    participant["id"]: participant for participant in (room_data["participants"] if room_data else [])
+                }
             await manager.broadcast_to_room(
                 room_id,
                 "ROUND_RESULT",
@@ -453,14 +568,14 @@ async def room_timer_task(room_id: int):
                         "icon": result.get("item", {}).get("icon"),
                     },
                     "comboString": result.get("item", {}).get("combo", ""),
-                    "laneParticipants": [
+                    "laneStrip": [
                         {
-                            "participantId": p["id"],
-                            "displayName": p["display_name"],
-                            "talisman": p["talisman"],
-                            "isBot": p["is_bot"]
+                            "participantId": participant_id,
+                            "displayName": participant_snapshot.get(participant_id, {}).get("display_name", "Участник"),
+                            "avatar": participant_snapshot.get(participant_id, {}).get("avatar", "🎲"),
+                            "isBot": participant_snapshot.get(participant_id, {}).get("is_bot", False),
                         }
-                        for p in (await service.get_room_with_participants(room_id))["participants"]
+                        for participant_id in (result.get("lane_participant_ids") or [])
                     ]
                 }
             )

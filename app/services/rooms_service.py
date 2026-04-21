@@ -7,7 +7,7 @@ from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, func, delete
 from app.models.models import (
-    Room, RoomStatus, RoomParticipant, User, Boost, Round, AdminConfig
+    Room, RoomStatus, RoomParticipant, User, Boost, Round, AdminConfig, UserRoundHistory
 )
 from app.services.bonus_service import BonusService
 from app.services.rng_service import RngService
@@ -253,8 +253,9 @@ class RoomsService:
         bots_to_add = max(0, room.max_players - current)
         bot_count = 0
         for i in range(bots_to_add):
+            bot_username = self._generate_bot_username(room_id, i)
             bot_user = User(
-                username=f"bot_{room.tier}_{room_id}_{i}",
+                username=bot_username,
                 role="vip",
                 bonus_balance=0
             )
@@ -328,6 +329,12 @@ class RoomsService:
             select(AdminConfig).where(AdminConfig.room_id == room_id)
         )).scalar_one_or_none()
         policy = config.bot_win_policy if config else settings.bot_win_policy
+        room_participants = (await self.db.execute(
+            select(RoomParticipant).where(
+                RoomParticipant.room_id == room_id,
+                RoomParticipant.is_bot == False,
+            )
+        )).scalars().all()
 
         if round_obj.winner_user_id:
             # Real user wins
@@ -347,6 +354,27 @@ class RoomsService:
                 )
             # If burn policy, do nothing - funds already in room.prize_pool are effectively removed
 
+        existing_history = (await self.db.execute(
+            select(UserRoundHistory.id).where(UserRoundHistory.round_id == round_obj.id)
+        )).first()
+        if not existing_history:
+            for participant in room_participants:
+                user = await self.db.get(User, participant.user_id)
+                if not user:
+                    continue
+                is_win = round_obj.winner_user_id == participant.user_id
+                self.db.add(UserRoundHistory(
+                    round_id=round_obj.id,
+                    room_id=room.id if room else None,
+                    user_id=participant.user_id,
+                    username=user.username,
+                    room_name=room.name if room else f"Room #{room_id}",
+                    status="win" if is_win else "lose",
+                    item_name=round_obj.item_name,
+                    item_rarity=round_obj.item_rarity,
+                    awarded_amount=round_obj.item_value if is_win else 0,
+                ))
+
         room.status = RoomStatus.FINISHED
         room.finished_at = datetime.utcnow()
         await self.db.commit()
@@ -365,14 +393,16 @@ class RoomsService:
         participant_details = []
         for p in participants:
             user = await self.db.get(User, p.user_id)
-            talisman = self._resolve_talisman(p.user_id, p.is_bot)
+            avatar = self._resolve_talisman(p.user_id, p.is_bot)
+            username = user.username if user else f"bot_{p.id}"
             participant_details.append({
                 "id": p.id,
                 "user_id": p.user_id,
-                "username": user.username if user else f"bot_{p.id}",
-                "display_name": p.room_alias,
+                "username": username,
+                "display_name": username,
                 "is_bot": p.is_bot,
-                "talisman": talisman,
+                "avatar": avatar,
+                "talisman": avatar,
                 "seat_index": p.seat_index,
                 "boost_multiplier": p.boost_multiplier,
                 "reserved_amount": p.reserved_amount
@@ -398,7 +428,13 @@ class RoomsService:
         return room_id
 
     def _resolve_talisman(self, user_id: int, is_bot: bool) -> str:
-        if is_bot:
-            return "🤖"
-        pool = ["🦊", "🐯", "🦁", "🐼", "🦉", "🐺", "🐸", "🦄", "🐙", "🐢", "🦅", "🐨"]
+        pool = ["🦊", "🐯", "🦁", "🐼", "🦉", "🐺", "🐸", "🦄", "🐙", "🐢", "🦅", "🐨", "🐵", "🐧", "🦝", "🐱"]
         return pool[user_id % len(pool)]
+
+    def _generate_bot_username(self, room_id: int, idx: int) -> str:
+        adjectives = ["Шустрый", "Лютый", "Тихий", "Рыжий", "Пушистый", "Смелый", "Хитрый", "Крепкий"]
+        creatures = ["Енот", "Барс", "Лис", "Пингвин", "Дракон", "Филин", "Краб", "Кот"]
+        adjective = adjectives[(room_id + idx) % len(adjectives)]
+        creature = creatures[(room_id * 3 + idx) % len(creatures)]
+        suffix = f"{(room_id + idx) % 100:02d}"
+        return f"{adjective}{creature}{suffix}"

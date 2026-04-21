@@ -1,7 +1,7 @@
 import enum
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Enum, JSON, Text
+    Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Enum, JSON, Text, UniqueConstraint
 )
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -119,6 +119,25 @@ class RoundResult(Base):
 
     # Relationships
     round = relationship("Round", back_populates="result")
+
+
+class UserRoundHistory(Base):
+    __tablename__ = "user_round_history"
+    __table_args__ = (
+        UniqueConstraint("round_id", "user_id", name="uq_user_round_history_round_user"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    round_id = Column(Integer, ForeignKey("rounds.id", ondelete="CASCADE"), nullable=False, index=True)
+    room_id = Column(Integer, ForeignKey("rooms.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    username = Column(String, nullable=False)
+    room_name = Column(String, nullable=False)
+    status = Column(String, nullable=False)  # win|lose
+    item_name = Column(String, nullable=False)
+    item_rarity = Column(String, nullable=False)
+    awarded_amount = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 class BonusTransaction(Base):
     __tablename__ = "bonus_transactions"
