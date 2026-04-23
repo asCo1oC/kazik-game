@@ -495,13 +495,15 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
               winnerHideTimeoutRef.current = window.setTimeout(() => setWinnerVisible(false), 3000)
             }}
           />
-          <WinnerCelebration
-            visible={winnerVisible}
-            avatar={winner?.avatar || '🏆'}
-            displayName={winner?.displayName || 'Победитель'}
-          />
         </div>
       </div>
+      
+      {/* Absolute fullscreen elements at the very root of the layout */}
+      <WinnerCelebration
+        visible={winnerVisible}
+        avatar={winner?.avatar || '🏆'}
+        displayName={winner?.displayName || 'Победитель'}
+      />
       
       {/* Magic Rules Blocks */}
       <div className="magic-rules-container">
