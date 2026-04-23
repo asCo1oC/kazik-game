@@ -1,6 +1,6 @@
 # Запуск MVP Stoloto VIP Opencase
 
-## Быстрый старт (один команда)
+## Быстрый старт (одной командой)
 
 ```bash
 ./app/setup.sh
@@ -106,23 +106,36 @@ uvicorn app.main:app --reload --port 8001
 
 ## API Endpoints
 
-- `GET  /api/rooms` — список комнат
-- `POST /api/rooms?user_id=1` — создать комнату
-- `GET  /api/rooms/{id}` — детали комнаты
-- `POST /api/rooms/{id}/join?user_id=1` — войти
-- `POST /api/rooms/{id}/boost?user_id=1` — купить буст
-- `GET  /api/admin/config` — конфигурация
+- `GET /api/rooms` — список комнат (фильтры: `entry_fee_min`, `entry_fee_max`, `seats_min`, `seats_max`, `tier`, `status`)
+- `GET /api/rooms/{id}` — детали комнаты + `participants` + `active_spin` (если комната в `running`)
+- `POST /api/rooms?creator_id=1` — создать комнату
+- `POST /api/rooms/{id}/join` — войти в комнату, body: `{ "user_id": 1 }`
+- `POST /api/rooms/{id}/leave` — выйти из комнаты, body: `{ "user_id": 1 }`
+- `POST /api/rooms/{id}/boost` — купить буст, body: `{ "user_id": 1 }`
+- `GET /api/users/{user_id}/active-room` — активная комната пользователя
+- `GET /api/users/{user_id}/profile?limit=20` — профиль и история игрока
+- `GET /api/admin/config` — конфигурация
 - `POST /api/admin/config` — сохранить конфиг
-- `GET  /api/history` — история раундов
-- `WS   /ws/room/{room_id}?user_id=1` — realtime события
+- `POST /api/admin/config/validate` — проверка рисков конфига
+- `GET /api/admin/rooms` — список комнат для админ-редактирования
+- `PUT /api/admin/rooms/{room_id}/config` — изменение комнаты в статусе `WAITING`
+- `GET /api/history` — история раундов
+- `WS /ws/room/{room_id}?user_id=1` — realtime события
 
 ## WebSocket события
 
-- `TIMER_TICK` — тик таймера
-- `BOT_ADDED` — добавление бота
-- `BOOST_ACTIVATED` — кто-то купил буст
-- `ROUND_RESULT` — **предопределенный** результат (winIndex, itemData)
-- `ROUND_FINISHED` — итоги, начисление
+- `TIMER_TICK` — тик таймера (`secondsLeft`)
+- `ROOM_LOCKED` — комната заблокирована перед стартом
+- `BOTS_ADDED` — добор ботов перед запуском
+- `PARTICIPANTS_SYNC` — актуальный список участников
+- `ROUND_RESULT` — предрасчитанная сервером лента (`winIndex`, `laneStrip`, `winnerParticipantId`, `itemData`)
+- `ROUND_FINISHED` — итоги розыгрыша (`winnerId`, `winnerUsername`, `awardedAmount`, `itemName`, `lingerSeconds`)
+
+## Важно для фронтенд-интеграции
+
+- При refresh во время прокрутки не пытайтесь генерировать ленту локально.
+- Сначала вызовите `GET /api/rooms/{id}` и если есть `active_spin`, восстановите рулетку из него.
+- После правок фронтенда всегда пересобирайте `frontend-react/dist`, иначе backend продолжит раздавать старую версию UI.
 
 ---
 

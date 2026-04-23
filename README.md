@@ -48,6 +48,14 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 - Профиль: `http://localhost:8000/profile`
 - Админка: `http://localhost:8000/admin`
 
+## Интеграция без сюрпризов
+
+- Backend отдает уже собранный frontend из `frontend-react/dist`.
+- После любых изменений в `frontend-react/src` обязательно выполняйте `cd frontend-react && npm run build`.
+- Контракт рулетки сервер-авторитетный: клиент не вычисляет победителя, а только рендерит `ROUND_RESULT`.
+- Для восстановления состояния при reload во время спина используйте поле `active_spin` из `GET /api/rooms/{room_id}`.
+- WebSocket подключение: `ws://localhost:8000/ws/room/{room_id}?user_id={id}` (или `wss://` на HTTPS).
+
 ## Что реализовано
 
 - Лобби с фильтрами, созданием комнат и входом.
@@ -90,7 +98,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ## API (актуально)
 
 - `GET /api/rooms` - список комнат, фильтры: `entry_fee_min`, `entry_fee_max`, `seats_min`, `seats_max`, `tier`, `status`
-- `GET /api/rooms/{room_id}` - детали комнаты
+- `GET /api/rooms/{room_id}` - детали комнаты; при `status=running` может содержать `active_spin` для восстановления спина после refresh
 - `POST /api/rooms?creator_id={user_id}` - создать комнату
 - `POST /api/rooms/{room_id}/join` - вход, body: `{ "user_id": number }`
 - `POST /api/rooms/{room_id}/leave` - выход, body: `{ "user_id": number }`
@@ -120,6 +128,14 @@ ws://localhost:8000/ws/room/{room_id}?user_id={id}
 - `ROOM_LOCKED`
 - `ROUND_RESULT` (серверная лента и winIndex)
 - `ROUND_FINISHED`
+
+### Полезные payload-поля для интеграции
+
+- `ROUND_RESULT.data.winIndex`: индекс победного слота в ленте.
+- `ROUND_RESULT.data.laneStrip[]`: готовая лента для рендера (порядок уже финальный).
+- `ROUND_FINISHED.data.awardedAmount`: сумма зачисления победителю (0 для бота).
+- `TIMER_TICK.data.secondsLeft`: обратный отсчет комнаты до старта.
+- `PARTICIPANTS_SYNC.data.participants[]`: актуальный состав участников.
 
 ## Важные замечания по рулетке
 

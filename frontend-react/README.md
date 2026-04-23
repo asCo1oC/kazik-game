@@ -1,73 +1,49 @@
-# React + TypeScript + Vite
+# Frontend (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Клиентская часть проекта `Stoloto VIP Opencase`.
 
-Currently, two official plugins are available:
+## Запуск в режиме разработки
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+По умолчанию dev-сервер Vite поднимается отдельно от backend.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Прод-сборка для backend
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Backend раздает статические файлы именно из `frontend-react/dist`, поэтому для интеграции нужен build:
+
+```bash
+npm run build
 ```
+
+После этого приложение доступно через FastAPI по `http://localhost:8000/`.
+
+## Важный контракт с backend
+
+- HTTP-клиент находится в `src/shared/api/client.ts`.
+- Realtime-хук: `src/features/room/hooks/useRoomRealtime.ts`.
+- WebSocket события, которые ожидает фронтенд:
+  - `TIMER_TICK`
+  - `ROOM_LOCKED`
+  - `BOTS_ADDED`
+  - `PARTICIPANTS_SYNC`
+  - `ROUND_RESULT`
+  - `ROUND_FINISHED`
+
+## Восстановление рулетки после refresh
+
+При загрузке комнаты клиент использует `GET /api/rooms/{room_id}`.
+Если backend вернул `active_spin`, фронтенд обязан восстановить ленту из этого payload, а не генерировать ее локально.
+
+## Структура
+
+- `src/app` — корневой роутинг и layout
+- `src/features/lobby` — лобби комнат
+- `src/features/room` — игровая комната и рулетка
+- `src/features/profile` — личный кабинет
+- `src/features/admin` — админ-панель
+- `src/features/welcome` — приветственная страница
+- `src/styles` — глобальные стили и тема
