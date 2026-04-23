@@ -593,34 +593,65 @@ button, input, select {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
   padding: 40px;
-  animation: winner-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, winner-fade 0.5s ease-in 2.1s forwards;
-  box-shadow: none;
-  border: none;
-  border-radius: 0;
+  animation: winner-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, winner-fade 0.8s ease-in-out 2.2s forwards;
 }
+
+.winner-celebration__content {
+  background: #ffffff;
+  border: 6px solid var(--gold);
+  border-radius: 40px;
+  box-shadow: 0 40px 100px rgba(255, 204, 0, 0.3), 0 0 0 20px rgba(255, 204, 0, 0.1);
+  padding: 60px 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 600px;
+  position: relative;
+  overflow: hidden;
+  animation: winner-content-pop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+.winner-celebration__content::before {
+  content: "";
+  position: absolute;
+  inset: -150%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(255, 204, 0, 0.2) 30deg, transparent 60deg, rgba(255, 204, 0, 0.2) 90deg, transparent 120deg, rgba(255, 204, 0, 0.2) 150deg, transparent 180deg, rgba(255, 204, 0, 0.2) 210deg, transparent 240deg, rgba(255, 204, 0, 0.2) 270deg, transparent 300deg, rgba(255, 204, 0, 0.2) 330deg, transparent 360deg);
+  animation: winner-spin-rays 10s linear infinite;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .winner-celebration__badge {
-  font-size: 1.2rem;
-  letter-spacing: 0.1em;
+  position: relative;
+  z-index: 1;
+  font-size: 1.4rem;
+  letter-spacing: 0.12em;
   font-weight: 800;
   color: #fff;
   background: var(--blue);
   border-radius: 999px;
-  padding: 8px 24px;
+  padding: 10px 32px;
   box-shadow: 0 10px 30px rgba(0, 160, 228, 0.3);
   text-transform: uppercase;
+  margin-bottom: 24px;
 }
 .winner-celebration__icon {
-  font-size: 8rem;
-  animation: winner-pop 0.85s ease-out 0.1s both;
-  filter: drop-shadow(0 20px 40px rgba(255, 204, 0, 0.4));
+  position: relative;
+  z-index: 1;
+  font-size: 10rem;
+  animation: winner-pop 0.85s ease-out 0.2s both;
+  filter: drop-shadow(0 30px 50px rgba(255, 204, 0, 0.5));
 }
 .winner-celebration__name {
-  font-size: 3rem;
+  position: relative;
+  z-index: 1;
+  font-size: 3.5rem;
   font-weight: 900;
   color: var(--text);
-  margin-top: 10px;
+  margin-top: 16px;
+  text-align: center;
 }
 
 @keyframes winner-enter {
@@ -1006,18 +1037,29 @@ button, input, select {
 
 /* Animations */
 @keyframes winner-enter {
-  0% { opacity: 0; transform: scale(1.05); }
-  to { opacity: 1; transform: scale(1); }
+  0% { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes winner-content-pop {
+  0% { transform: scale(0.4) translateY(100px); opacity: 0; }
+  60% { transform: scale(1.08) translateY(-10px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+@keyframes winner-spin-rays {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 @keyframes winner-pop {
-  0% { transform: scale(0.5); opacity: 0; }
-  50% { transform: scale(1.2); }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: scale(0.5) rotate(-15deg); opacity: 0; }
+  50% { transform: scale(1.2) rotate(10deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
 }
 
 @keyframes winner-fade {
-  to { opacity: 0; pointer-events: none; }
+  to { opacity: 0; pointer-events: none; transform: scale(1.05); }
 }
 @keyframes timerBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
 @keyframes boostShine { 0%, 35% { transform: translateX(-120%); } 55%, 100% { transform: translateX(120%); } }

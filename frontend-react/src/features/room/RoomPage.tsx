@@ -158,7 +158,6 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
     setRoom((prev) => (prev ? { ...prev, status: 'finished' } : prev))
     const linger = Number(data.lingerSeconds) || 30
     setTimer(linger)
-    toast(`Победитель: ${data.winnerUsername}`, 'success')
     setWinnerVisible(true)
     const awardedAmount = Number(data.awardedAmount) || 0
     if (data.winnerId === userId && awardedAmount > 0) {
