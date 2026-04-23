@@ -1,4 +1,4 @@
-!#/bin/bash
+#!/bin/bash
 echo 'rebuilding frontend'
 cd frontend-react && npm install && npm run build
 echo 'starting app...'

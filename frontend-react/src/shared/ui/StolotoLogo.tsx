@@ -5,7 +5,7 @@ export function StolotoLogo({ className = '' }: { className?: string }) {
       viewBox="0 0 240 40" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      style={{ height: '28px', width: 'auto', display: 'block' }}
+      style={{ height: '32px', width: 'auto', display: 'block', overflow: 'visible' }}
     >
       {/* 4 Balls */}
       <circle cx="16" cy="20" r="14" fill="#FFCC00" />
