@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiClient, type RoomListItem } from '../../shared/api/client'
 
 type Props = {
@@ -18,18 +18,24 @@ export function LobbyPage({ userId, onJoinRoom, toast }: Props) {
     tier: '',
   })
 
-  const loadRooms = async () => {
+  const loadRooms = useCallback(async () => {
     try {
       const data = await api.getRooms(filters)
       setRooms(data)
     } catch (e) {
       toast((e as Error).message, 'error')
     }
-  }
+  }, [api, filters, toast])
 
   useEffect(() => {
-    loadRooms().catch(() => undefined)
-  }, [])
+    let ignore = false
+    window.setTimeout(() => {
+      if (!ignore) {
+        loadRooms().catch(() => undefined)
+      }
+    }, 0)
+    return () => { ignore = true }
+  }, [loadRooms])
 
   return (
     <section id="lobby-view" className="view active">

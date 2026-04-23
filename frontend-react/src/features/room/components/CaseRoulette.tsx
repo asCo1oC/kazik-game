@@ -30,53 +30,55 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
     if (!isSpinning || winnerIndex === null) return undefined
     if (items.length <= winnerIndex) return undefined
 
-    setTransition('none')
-    setOffset(0)
-    setIsSlowingDown(false)
-
-    const randomOffset = 0
-    const overshoot = 10 + Math.floor(Math.random() * 9)
-    // Strip has padding-left: 50%, so card center formula is:
-    // x = containerCenter + index * ITEM_FULL_WIDTH + CARD_WIDTH / 2 + offset.
-    // To align selected card center with pointer at containerCenter:
-    // offset = -(index * ITEM_FULL_WIDTH + CARD_WIDTH / 2).
-    const targetOffset = -((winnerIndex * ITEM_FULL_WIDTH) + (CARD_WIDTH / 2) + randomOffset)
-    const mainStopOffset = targetOffset - overshoot
-    const finalOffset = targetOffset
-
-    let raf2 = 0
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        setTransition(`transform ${MAIN_SPIN_MS}ms cubic-bezier(0.08, 0.92, 0.2, 1)`)
-        setOffset(mainStopOffset)
-      })
-    })
-
-    const settleTimer = window.setTimeout(() => {
-      setTransition(`transform ${SETTLE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`)
-      setOffset(finalOffset)
-    }, MAIN_SPIN_MS)
-
-    // Turn on jitter shortly before settle to add tension.
-    const slowdownLeadMs = 1100
-    const slowDownTimer = window.setTimeout(() => {
-      setIsSlowingDown(true)
-    }, Math.max(0, MAIN_SPIN_MS - slowdownLeadMs))
-
-    const doneTimer = window.setTimeout(() => {
+    // Delay initialization to avoid synchronous cascading renders
+    const initTimer = window.setTimeout(() => {
+      setTransition('none')
+      setOffset(0)
       setIsSlowingDown(false)
-      onSpinEnd?.()
-    }, MAIN_SPIN_MS + SETTLE_MS)
+
+      const randomOffset = 0
+      const overshoot = 10 + Math.floor(Math.random() * 9)
+      const targetOffset = -((winnerIndex * ITEM_FULL_WIDTH) + (CARD_WIDTH / 2) + randomOffset)
+      const mainStopOffset = targetOffset - overshoot
+      const finalOffset = targetOffset
+
+      let raf2 = 0
+      const raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => {
+          setTransition(`transform ${MAIN_SPIN_MS}ms cubic-bezier(0.08, 0.92, 0.2, 1)`)
+          setOffset(mainStopOffset)
+        })
+      })
+
+      const settleTimer = window.setTimeout(() => {
+        setTransition(`transform ${SETTLE_MS}ms cubic-bezier(0.22, 1, 0.36, 1)`)
+        setOffset(finalOffset)
+      }, MAIN_SPIN_MS)
+
+      const slowdownLeadMs = 1100
+      const slowDownTimer = window.setTimeout(() => {
+        setIsSlowingDown(true)
+      }, Math.max(0, MAIN_SPIN_MS - slowdownLeadMs))
+
+      const doneTimer = window.setTimeout(() => {
+        setIsSlowingDown(false)
+        onSpinEnd?.()
+      }, MAIN_SPIN_MS + SETTLE_MS)
+
+      return () => {
+        cancelAnimationFrame(raf1)
+        cancelAnimationFrame(raf2)
+        window.clearTimeout(settleTimer)
+        window.clearTimeout(slowDownTimer)
+        window.clearTimeout(doneTimer)
+      }
+    }, 0)
 
     return () => {
-      cancelAnimationFrame(raf1)
-      cancelAnimationFrame(raf2)
-      window.clearTimeout(settleTimer)
-      window.clearTimeout(slowDownTimer)
-      window.clearTimeout(doneTimer)
+      window.clearTimeout(initTimer)
       setIsSlowingDown(false)
     }
-  }, [isSpinning, winnerIndex, items, onSpinEnd])
+  }, [isSpinning, winnerIndex, items.length, onSpinEnd])
 
   return (
     <div

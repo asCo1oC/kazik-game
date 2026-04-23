@@ -3,6 +3,7 @@ import { ApiClient, type RoomDetail, type RoomParticipant } from '../../shared/a
 import { useRoomRealtime } from './hooks/useRoomRealtime'
 import { CaseRoulette, type CaseRouletteItem } from './components/CaseRoulette'
 import { WinnerCelebration } from './components/WinnerCelebration'
+import { StolotoLogo } from '../../shared/ui/StolotoLogo'
 
 type Props = {
   roomId: number
@@ -99,26 +100,38 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
   }, [onExit])
 
   const refreshRoom = useCallback(async () => {
-    const data = await api.getRoom(roomId)
-    setRoom(data)
-    setParticipants(data.participants || [])
-    if (typeof data.time_remaining === 'number') setTimer(data.time_remaining)
-    const amParticipant = (data.participants || []).some((p) => p.user_id === userId && !p.is_bot)
-    if (!amParticipant) handleExit()
-  }, [api, roomId, userId, handleExit])
+    try {
+      const data = await api.getRoom(roomId)
+      setRoom(data)
+      setParticipants(data.participants || [])
+      if (typeof data.time_remaining === 'number') setTimer(data.time_remaining)
+      const amParticipant = (data.participants || []).some((p) => p.user_id === userId && !p.is_bot)
+      if (!amParticipant) handleExit()
+    } catch (e) {
+      if (e instanceof Error) toast(e.message, 'error')
+      handleExit()
+    }
+  }, [api, roomId, userId, handleExit, toast])
 
   const refreshBalance = useCallback(async () => {
-    const profile = await api.getUserProfile(userId, 1)
-    setAnimatedBalance(profile.bonus_balance)
+    try {
+      const profile = await api.getUserProfile(userId, 1)
+      setAnimatedBalance(profile.bonus_balance)
+    } catch {
+      // ignore
+    }
   }, [api, userId])
 
   useEffect(() => {
-    refreshRoom().catch((e: Error) => {
-      toast(e.message, 'error')
-      handleExit()
-    })
-    refreshBalance().catch(() => undefined)
-  }, [refreshRoom, refreshBalance, toast, handleExit])
+    let ignore = false
+    window.setTimeout(() => {
+      if (!ignore) {
+        refreshRoom()
+        refreshBalance()
+      }
+    }, 0)
+    return () => { ignore = true }
+  }, [refreshRoom, refreshBalance])
 
   useEffect(() => {
     return () => {
@@ -190,12 +203,19 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
     if (roundStripLocked || isSpinning || room?.status === 'locked' || room?.status === 'running' || room?.status === 'finished') {
       return
     }
-    setRouletteItems(buildFallbackStrip(participants, DEFAULT_STRIP_SIZE))
+    // Delay state update to avoid synchronous cascading renders
+    const timerId = window.setTimeout(() => {
+      setRouletteItems(buildFallbackStrip(participants, DEFAULT_STRIP_SIZE))
+    }, 0)
+    return () => window.clearTimeout(timerId)
   }, [participants, isSpinning, room?.status, roundStripLocked])
 
   const wsHandlers = useMemo(() => ({
     TIMER_TICK: (data: { secondsLeft?: number }) => setTimer(Number(data.secondsLeft) || 0),
-    BOTS_ADDED: () => refreshRoom().catch(() => undefined),
+    BOTS_ADDED: () => {
+      // Delay to avoid cascading renders
+      window.setTimeout(() => refreshRoom().catch(() => undefined), 0)
+    },
     PARTICIPANTS_SYNC: (data: { participants?: RoomParticipant[] }) => {
       setParticipants(data.participants || [])
     },
@@ -261,7 +281,7 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
         pendingRoundFinishRef.current = data
       }
     },
-  }), [participants, refreshRoom, spinCompleted, applyRoundFinished])
+  }), [participants, refreshRoom, spinCompleted, applyRoundFinished, roomId])
 
   useRoomRealtime(roomId, userId, wsHandlers)
 
@@ -405,9 +425,9 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       <aside className="room-sidebar shell-card">
         <div className="room-sidebar__top">
           <button className="btn btn-secondary" onClick={leaveRoom} disabled={cannotLeave}>← Выйти из комнаты</button>
-          <div>
-            <p className="eyebrow">Столото</p>
-            <h2>{room.name}</h2>
+          <div className="room-sidebar__brand">
+            <StolotoLogo className="sidebar-logo" />
+            <h2 className="mt-2">{room.name}</h2>
           </div>
         </div>
         <div className="room-stat-grid">

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ApiClient, type AdminConfig, type AdminRoomItem, type ConfigValidation } from '../../shared/api/client'
 
 type Props = {
@@ -31,7 +31,7 @@ export function AdminPage({ onBack, toast }: Props) {
     boost_multiplier: 0.2,
   })
 
-  const loadRooms = async () => {
+  const loadRooms = useCallback(async () => {
     try {
       const data = await api.getAdminRooms()
       setRooms(data)
@@ -52,26 +52,42 @@ export function AdminPage({ onBack, toast }: Props) {
     } catch (e) {
       toast((e as Error).message, 'error')
     }
-  }
+  }, [api, selectedRoomId, toast])
 
-  const validate = async (next = config) => {
+  const validate = useCallback(async (next = config) => {
     try {
       const v = await api.validateConfig(next)
       setValidation(v)
     } catch (e) {
       toast((e as Error).message, 'error')
     }
-  }
+  }, [api, config, toast])
 
   useEffect(() => {
+    let ignore = false
+    
     api.getConfig()
       .then((cfg) => {
-        setConfig(cfg)
-        validate(cfg).catch(() => undefined)
+        if (!ignore) {
+          setConfig(cfg)
+          validate(cfg).catch(() => undefined)
+        }
       })
-      .catch((e: Error) => toast(e.message, 'error'))
-    loadRooms().catch(() => undefined)
-  }, [])
+      .catch((e: Error) => {
+        if (!ignore) toast(e.message, 'error')
+      })
+      
+    // Load rooms in a way that doesn't trigger synchronous cascaded renders
+    window.setTimeout(() => {
+      if (!ignore) {
+        loadRooms().catch(() => undefined)
+      }
+    }, 0)
+    
+    return () => {
+      ignore = true
+    }
+  }, [api, loadRooms, toast, validate])
 
   const update = <K extends keyof AdminConfig>(key: K, value: AdminConfig[K]) => {
     const next = { ...config, [key]: value }

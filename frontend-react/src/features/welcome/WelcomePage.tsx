@@ -1,8 +1,10 @@
+import { StolotoLogo } from '../../shared/ui/StolotoLogo'
+
 export function WelcomePage({ onEnter }: { onEnter: () => void }) {
   return (
     <div className="welcome-layout">
       <div className="welcome-content shell-card">
-        <p className="eyebrow">Столото</p>
+        <StolotoLogo className="welcome-logo mx-auto mb-4" />
         <h1 className="welcome-title">Премиальные Розыгрыши</h1>
         <p className="welcome-subtitle">
           Добро пожаловать в Opencase Lobby. Эксклюзивные комнаты для прозрачных и честных розыгрышей.

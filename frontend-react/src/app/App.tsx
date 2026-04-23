@@ -5,6 +5,7 @@ import { AdminPage } from '../features/admin/AdminPage'
 import { ProfilePage } from '../features/profile/ProfilePage'
 import { WelcomePage } from '../features/welcome/WelcomePage'
 import { ApiClient, type UserProfile } from '../shared/api/client'
+import { StolotoLogo } from '../shared/ui/StolotoLogo'
 
 type View = 'lobby' | 'room' | 'admin' | 'profile'
 
@@ -65,11 +66,7 @@ export function App() {
     setView(nextView)
   }
 
-  useEffect(() => {
-    if (view === 'room' && roomId === null) {
-      setView('lobby')
-    }
-  }, [view, roomId])
+  // Removed synchronous setState effect that was triggering cascading renders
 
   const showToast = (message: string, type = 'info') => {
     setToast({ message, type })
@@ -85,7 +82,7 @@ export function App() {
       {!isRoomActive && (
         <header className="header shell-card">
           <div className="brand-block">
-            <p className="eyebrow">Столото</p>
+            <StolotoLogo className="brand-logo" />
             <h1>Opencase Lobby</h1>
             <p className="brand-subtitle">Премиальные комнаты, прозрачный розыгрыш и быстрый вход в игру.</p>
           </div>

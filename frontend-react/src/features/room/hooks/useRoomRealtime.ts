@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 
-type WsHandlers = Partial<Record<'TIMER_TICK' | 'ROOM_LOCKED' | 'BOTS_ADDED' | 'ROUND_RESULT' | 'ROUND_FINISHED' | 'PARTICIPANTS_SYNC', (data: any) => void>>
+type WsPayload = Record<string, unknown>
+type WsHandlers = Partial<Record<'TIMER_TICK' | 'ROOM_LOCKED' | 'BOTS_ADDED' | 'ROUND_RESULT' | 'ROUND_FINISHED' | 'PARTICIPANTS_SYNC', (data: WsPayload) => void>>
 
 export function useRoomRealtime(roomId: number, userId: number, handlers: WsHandlers) {
   const wsRef = useRef<WebSocket | null>(null)
