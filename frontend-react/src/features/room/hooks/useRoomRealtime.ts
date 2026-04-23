@@ -6,6 +6,11 @@ type WsHandlers = Partial<Record<'TIMER_TICK' | 'ROOM_LOCKED' | 'BOTS_ADDED' | '
 export function useRoomRealtime(roomId: number, userId: number, handlers: WsHandlers) {
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectRef = useRef(0)
+  const handlersRef = useRef(handlers)
+
+  useEffect(() => {
+    handlersRef.current = handlers
+  }, [handlers])
 
   useEffect(() => {
     let closedManually = false
@@ -20,7 +25,7 @@ export function useRoomRealtime(roomId: number, userId: number, handlers: WsHand
       wsRef.current.onmessage = (event) => {
         try {
           const msg = JSON.parse(event.data)
-          const handler = handlers[msg.event as keyof WsHandlers]
+          const handler = handlersRef.current[msg.event as keyof WsHandlers]
           handler?.(msg.data)
         } catch {
           // ignore malformed payloads
@@ -39,5 +44,5 @@ export function useRoomRealtime(roomId: number, userId: number, handlers: WsHand
       closedManually = true
       wsRef.current?.close()
     }
-  }, [roomId, userId, handlers])
+  }, [roomId, userId])
 }

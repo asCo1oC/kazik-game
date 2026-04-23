@@ -199,7 +199,7 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
   }, [animatedBalance, handleExit, refreshBalance, toast, userId])
 
   useEffect(() => {
-    if (roundStripLocked || isSpinning || room?.status === 'locked' || room?.status === 'running' || room?.status === 'finished') {
+    if (roundStripLocked || isSpinning) {
       return
     }
     // Delay state update to avoid synchronous cascading renders
@@ -207,7 +207,7 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       setRouletteItems(buildFallbackStrip(participants, DEFAULT_STRIP_SIZE))
     }, 0)
     return () => window.clearTimeout(timerId)
-  }, [participants, isSpinning, room?.status, roundStripLocked])
+  }, [participants, isSpinning, roundStripLocked])
 
   const wsHandlers = useMemo(() => ({
     TIMER_TICK: (data: { secondsLeft?: number }) => setTimer(Number(data.secondsLeft) || 0),
@@ -274,13 +274,13 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       setIsSpinning(true)
     },
     ROUND_FINISHED: (data: RoundFinishedPayload) => {
-      if (spinCompleted) {
+      if (spinCompleted || !isSpinning) {
         applyRoundFinished(data)
       } else {
         pendingRoundFinishRef.current = data
       }
     },
-  }), [participants, refreshRoom, spinCompleted, applyRoundFinished, roomId])
+  }), [participants, refreshRoom, spinCompleted, isSpinning, applyRoundFinished, roomId])
 
   useRoomRealtime(roomId, userId, wsHandlers)
 
