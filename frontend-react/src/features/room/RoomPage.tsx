@@ -96,7 +96,7 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
     setIsExiting(true)
     setTimeout(() => {
       onExit()
-    }, 800) // 500ms close + 300ms fade out
+    }, 500) // matches door closing duration
   }, [onExit])
 
   const refreshRoom = useCallback(async () => {
@@ -311,7 +311,7 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       exitingRef.current = true
       setIsExiting(true)
       await api.leaveRoom(roomId, userId)
-      setTimeout(() => onExit(), 800) // 500ms close + 300ms fade out
+      setTimeout(() => onExit(), 500)
     } catch (error) {
       exitingRef.current = false
       setIsExiting(false)
