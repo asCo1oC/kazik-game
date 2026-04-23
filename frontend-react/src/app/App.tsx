@@ -15,20 +15,20 @@ function resolveViewFromPath(pathname: string): View {
   return 'lobby'
 }
 
+let hasSeenWelcomeThisLoad = false
+
 export function App() {
   const api = useMemo(() => new ApiClient(), [])
   const [view, setView] = useState<View>(() => resolveViewFromPath(window.location.pathname))
   const [roomId, setRoomId] = useState<number | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null)
-  const [showWelcome, setShowWelcome] = useState<boolean>(() => {
-    return !sessionStorage.getItem('hasSeenWelcome')
-  })
+  const [showWelcome, setShowWelcome] = useState<boolean>(!hasSeenWelcomeThisLoad)
   const userId = 1
   const isRoomActive = view === 'room' && roomId !== null
 
   const handleEnterWelcome = () => {
-    sessionStorage.setItem('hasSeenWelcome', '1')
+    hasSeenWelcomeThisLoad = true
     setShowWelcome(false)
   }
 
