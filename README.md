@@ -1,5 +1,7 @@
 # Stoloto VIP Opencase - MVP
 
+![Приветственная страница](docs/images/welcome-page.png)
+
 Рабочий прототип игровых комнат на бонусные баллы для VIP-аудитории.
 
 ## Стек
