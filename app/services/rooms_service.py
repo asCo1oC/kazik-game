@@ -7,7 +7,7 @@ from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, func, delete
 from app.models.models import (
-    Room, RoomStatus, RoomParticipant, User, Boost, Round, AdminConfig, UserRoundHistory
+    Room, RoomStatus, RoomParticipant, User, Boost, Round, AdminConfig, UserRoundHistory, RoundResult
 )
 from app.services.bonus_service import BonusService
 from app.services.rng_service import RngService
@@ -408,9 +408,18 @@ class RoomsService:
                 "reserved_amount": p.reserved_amount
             })
 
+        active_spin = None
+        if room.status == RoomStatus.RUNNING:
+            round_obj = (await self.db.execute(select(Round).where(Round.room_id == room_id))).scalar_one_or_none()
+            if round_obj:
+                round_result = (await self.db.execute(select(RoundResult).where(RoundResult.round_id == round_obj.id))).scalar_one_or_none()
+                if round_result:
+                    active_spin = round_result.payload
+
         return {
             "room": room,
-            "participants": participant_details
+            "participants": participant_details,
+            "active_spin": active_spin
         }
 
     async def get_active_room_for_user(self, user_id: int) -> Optional[int]:

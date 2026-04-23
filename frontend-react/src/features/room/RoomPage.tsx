@@ -105,6 +105,44 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       setRoom(data)
       setParticipants(data.participants || [])
       if (typeof data.time_remaining === 'number') setTimer(data.time_remaining)
+      
+      if (data.status === 'running' && data.active_spin) {
+        const spinData = data.active_spin
+        const participantIds: number[] = spinData.lane_participant_ids || []
+        const laneStrip: RoundLaneParticipant[] = participantIds.map((pid) => {
+          const p = data.participants?.find((part) => part.id === pid)
+          return {
+            participantId: pid,
+            displayName: p?.display_name || "Участник",
+            avatar: p?.avatar || "🎲",
+            isBot: p?.is_bot || false
+          }
+        })
+        const nextWinIndex = typeof spinData.win_index === 'number' ? spinData.win_index : DEFAULT_WIN_INDEX
+
+        setRoundStripLocked(true)
+        setSpinCompleted(false)
+        setRoundFinishedReceived(false)
+        pendingRoundFinishRef.current = null
+        setWinIndex(nextWinIndex)
+
+        if (laneStrip.length > nextWinIndex) {
+          const preparedStrip = laneStrip.map((participant, index) => laneParticipantToRouletteItem(participant, index))
+          setRouletteItems(preparedStrip)
+          const resolvedWinner = laneStrip[nextWinIndex]
+          if (resolvedWinner) {
+            setWinner({ avatar: resolvedWinner.avatar, displayName: resolvedWinner.displayName })
+          } else {
+            setWinner(null)
+          }
+        } else {
+          setRouletteItems(buildFallbackStrip(data.participants || [], Math.max(DEFAULT_STRIP_SIZE, nextWinIndex + 5)))
+          setWinner(null)
+        }
+        setWinnerVisible(false)
+        setIsSpinning(true)
+      }
+      
       const amParticipant = (data.participants || []).some((p) => p.user_id === userId && !p.is_bot)
       if (!amParticipant) handleExit()
     } catch (e) {

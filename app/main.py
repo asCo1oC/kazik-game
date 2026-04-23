@@ -260,7 +260,8 @@ async def get_room(room_id: int, service: RoomsService = Depends(get_rooms_servi
         participants_count=len(participants),
         bots_count=sum(1 for p in participants if p["is_bot"]),
         time_remaining=time_remaining,
-        participants=[ParticipantInfo(**p) for p in participants]
+        participants=[ParticipantInfo(**p) for p in participants],
+        active_spin=data.get("active_spin")
     )
 
 

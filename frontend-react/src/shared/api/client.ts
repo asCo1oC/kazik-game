@@ -24,6 +24,7 @@ export type RoomDetail = {
   prize_pool: number
   time_remaining: number | null
   participants: RoomParticipant[]
+  active_spin?: any
 }
 
 export type RoomListItem = {

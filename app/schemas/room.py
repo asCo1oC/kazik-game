@@ -57,6 +57,7 @@ class RoomDetailResponse(RoomResponse):
     bots_count: int
     time_remaining: Optional[int] = None
     participants: List[ParticipantInfo] = Field(default_factory=list)
+    active_spin: Optional[dict] = None
 
 class RoomListFilter(BaseModel):
     entry_fee_min: Optional[int] = None
