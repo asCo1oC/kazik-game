@@ -506,32 +506,40 @@ export function RoomPage({ roomId, userId, onExit, toast }: Props) {
       {/* Magic Rules Blocks */}
       <div className="magic-rules-container">
         <div className="magic-rule-card shell-card">
-          <div className="magic-rule-icon">🛡️</div>
-          <h4>Provably Fair</h4>
+          <div className="magic-rule-card-inner">
+            <div className="magic-rule-icon">🛡️</div>
+            <h4>Provably Fair</h4>
+          </div>
           <div className="magic-rule-tooltip">
             <strong>Честная и прозрачная игра</strong>
             Каждый исход генерируется до начала вращения и может быть математически доказан. Никаких подкруток, только чистая удача и честный алгоритм классической рулетки.
           </div>
         </div>
         <div className="magic-rule-card shell-card">
-          <div className="magic-rule-icon">⚡</div>
-          <h4>Победитель</h4>
+          <div className="magic-rule-card-inner">
+            <div className="magic-rule-icon">⚡</div>
+            <h4>Победитель</h4>
+          </div>
           <div className="magic-rule-tooltip">
             <strong>Все решается на сервере</strong>
             Результат вычисляется на сервере ровно в момент старта. Визуализация на экране (прокрутка ленты) лишь красиво отображает уже предопределенный сервером итог. Сервер всегда авторитетен.
           </div>
         </div>
         <div className="magic-rule-card shell-card">
-          <div className="magic-rule-icon">🔥</div>
-          <h4>Система бустов</h4>
+          <div className="magic-rule-card-inner">
+            <div className="magic-rule-icon">🔥</div>
+            <h4>Система бустов</h4>
+          </div>
           <div className="magic-rule-tooltip">
             <strong>{room.boost_enabled ? `Увеличение шанса на +${Math.round(room.boost_multiplier * 100)}%` : 'В данной комнате бусты отключены'}</strong>
             {room.boost_enabled ? `Стоимость активации: ${room.boost_cost} бонусов. ` : ''}Буст не гарантирует 100% победу, но делает ваш "билет" толще, увеличивая вашу долю вероятности в общем пуле участников.
           </div>
         </div>
         <div className="magic-rule-card shell-card">
-          <div className="magic-rule-icon">💎</div>
-          <h4>Комиссия 0%</h4>
+          <div className="magic-rule-card-inner">
+            <div className="magic-rule-icon">💎</div>
+            <h4>Комиссия 0%</h4>
+          </div>
           <div className="magic-rule-tooltip">
             <strong>Мы не берем процент с выигрыша!</strong>
             Победитель забирает весь сформированный фонд комнаты подчистую. Вы получаете на свой баланс всё до последней копейки без скрытых налогов на победу.

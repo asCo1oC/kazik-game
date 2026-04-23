@@ -595,7 +595,7 @@ button, input, select {
   justify-content: center;
   gap: 24px;
   padding: 40px;
-  animation: winner-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), winner-fade 0.5s ease-in 2.1s forwards;
+  animation: winner-enter 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, winner-fade 0.5s ease-in 2.1s forwards;
   box-shadow: none;
   border: none;
   border-radius: 0;
@@ -645,10 +645,23 @@ button, input, select {
   justify-content: center;
   text-align: center;
   cursor: pointer;
-  animation: floatMagic 4s ease-in-out infinite;
-  transform-style: preserve-3d;
   z-index: 10;
 }
+.magic-rule-card-inner {
+  animation: floatMagic 4s ease-in-out infinite;
+  transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.magic-rule-card:nth-child(1) .magic-rule-card-inner { animation-delay: 0s; }
+.magic-rule-card:nth-child(2) .magic-rule-card-inner { animation-delay: -1.2s; }
+.magic-rule-card:nth-child(3) .magic-rule-card-inner { animation-delay: -2.4s; }
+.magic-rule-card:nth-child(4) .magic-rule-card-inner { animation-delay: -3.6s; }
+
 .magic-rule-card::before {
   content: "";
   position: absolute;
@@ -660,21 +673,21 @@ button, input, select {
   transition: box-shadow 0.3s ease, border-color 0.3s ease;
   box-shadow: var(--shadow);
 }
-.magic-rule-card:nth-child(1) { animation-delay: 0s; }
-.magic-rule-card:nth-child(2) { animation-delay: -1.2s; }
-.magic-rule-card:nth-child(3) { animation-delay: -2.4s; }
-.magic-rule-card:nth-child(4) { animation-delay: -3.6s; }
 
 .magic-rule-icon {
   font-size: 3.2rem;
   margin-bottom: 16px;
   transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  position: relative;
+  z-index: 2;
 }
 .magic-rule-card h4 {
   color: var(--text);
   font-size: 1.2rem;
   font-weight: 800;
   margin: 0;
+  position: relative;
+  z-index: 2;
 }
 .magic-rule-tooltip {
   position: absolute;

@@ -87,11 +87,11 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
         width: '100%',
         maxWidth: '1240px',
         height: '230px',
-        background: '#111827',
-        borderRadius: '12px',
+        background: '#ffffff',
+        borderRadius: '20px',
         overflow: 'hidden',
-        border: '2px solid rgba(202, 138, 4, 0.3)',
-        boxShadow: '0 0 30px rgba(234, 179, 8, 0.1)',
+        border: '2px solid var(--line-strong)',
+        boxShadow: 'inset 0 4px 12px rgba(0,0,0,0.03)',
         margin: '0 auto',
         animation: isSlowingDown ? 'rouletteSlowShake 120ms steps(2,end) infinite' : 'none',
       }}
@@ -103,10 +103,10 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
           top: 0,
           bottom: 0,
           width: '4px',
-          background: '#eab308',
+          background: 'var(--red)',
           zIndex: 20,
           transform: 'translateX(-50%)',
-          boxShadow: '0 0 15px rgba(234, 179, 8, 0.8)',
+          boxShadow: '0 0 12px rgba(227, 0, 15, 0.5)',
         }}
       >
         <div
@@ -119,7 +119,7 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
             height: 0,
             borderLeft: '8px solid transparent',
             borderRight: '8px solid transparent',
-            borderTop: '12px solid #eab308',
+            borderTop: '12px solid var(--red)',
           }}
         />
         <div
@@ -132,7 +132,7 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
             height: 0,
             borderLeft: '8px solid transparent',
             borderRight: '8px solid transparent',
-            borderBottom: '12px solid #eab308',
+            borderBottom: '12px solid var(--red)',
           }}
         />
       </div>
@@ -144,7 +144,7 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
           top: 0,
           bottom: 0,
           width: '120px',
-          background: 'linear-gradient(to right, #111827, transparent)',
+          background: 'linear-gradient(to right, #ffffff 0%, rgba(255,255,255,0.4) 100%)',
           zIndex: 10,
           pointerEvents: 'none',
         }}
@@ -156,7 +156,7 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
           top: 0,
           bottom: 0,
           width: '120px',
-          background: 'linear-gradient(to left, #111827, transparent)',
+          background: 'linear-gradient(to left, #ffffff 0%, rgba(255,255,255,0.4) 100%)',
           zIndex: 10,
           pointerEvents: 'none',
         }}
@@ -185,9 +185,9 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
               width: `${CARD_WIDTH}px`,
               height: `${CARD_WIDTH}px`,
               marginRight: `${CARD_MARGIN}px`,
-              background: 'rgba(31, 41, 55, 0.8)',
-              backdropFilter: 'blur(4px)',
-              borderRadius: '8px',
+              background: idx % 2 === 0 ? '#f8fafc' : '#ffffff',
+              borderRadius: '12px',
+              border: '1px solid var(--line)',
               borderBottom: `4px solid ${item.rarityColor}`,
               transition: 'filter 0.3s',
               cursor: 'default',
@@ -195,18 +195,18 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
           >
             <div
               style={{
-              fontSize: '56px',
+                fontSize: '56px',
                 marginBottom: '8px',
-                filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.5))',
+                filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))',
               }}
             >
               {item.icon}
             </div>
             <div
               style={{
-                fontSize: '12px',
+                fontSize: '14px',
                 fontWeight: 'bold',
-                color: '#e5e7eb',
+                color: 'var(--text)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
                 width: '100%',
@@ -219,7 +219,6 @@ export function CaseRoulette({ items, winnerIndex, isSpinning, onSpinEnd }: Prop
             >
               {item.name}
             </div>
-            {/* rarity line intentionally hidden to keep roulette clean */}
           </div>
         ))}
       </div>
